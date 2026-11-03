@@ -1,0 +1,361 @@
+from datetime import datetime
+import re
+
+# ----------------- DATA STORAGE -----------------
+
+users = [
+    {
+        "username": "teacher1",
+        "password": "password123",
+        "role": "teacher",
+        "name": "Prof. Davis"
+    },
+    {
+        "username": "juan2026",
+        "password": "mypassword",
+        "role": "student",
+        "student_id": "2026-0001",
+        "name": "Juan Dela Cruz",
+        "section": "BSIT-2A"
+    }
+]
+
+students = [
+    {"id": "2026-0001", "name": "Juan Dela Cruz", "section": "BSIT-2A"},
+    {"id": "2026-0002", "name": "Maria Santos", "section": "BSIT-2A"},
+    {"id": "2026-0003", "name": "Pedro Penduko", "section": "BSCS-1B"}
+]
+
+attendance_records = [
+    {
+        "student_id": "2026-0001",
+        "name": "Juan Dela Cruz",
+        "section": "BSIT-2A",
+        "date": "2026-10-20",
+        "time": "08:00 AM",
+        "status": "Present"
+    },
+    {
+        "student_id": "2026-0002",
+        "name": "Maria Santos",
+        "section": "BSIT-2A",
+        "date": "2026-10-20",
+        "time": "08:15 AM",
+        "status": "Late"
+    }
+]
+
+# ----------------- INPUT VALIDATORS -----------------
+
+def get_student_id(prompt="Enter Student ID: "):
+    """Validates alphanumeric student ID with hyphens (3-15 chars)."""
+    while True:
+        s_id = input(prompt).strip().upper()
+        if not s_id:
+            print("[ERROR] Student ID cannot be empty.")
+            continue
+        if not re.fullmatch(r"^[A-Z0-9\-]{3,15}$", s_id):
+            print("[ERROR] Invalid ID! Use 3-15 alphanumeric characters and hyphens only (e.g., 2026-0001, IT-101).")
+            continue
+        return s_id
+
+def get_name(prompt="Enter full name: "):
+    """Validates full name (letters, spaces, hyphens, periods)."""
+    while True:
+        name = input(prompt).strip()
+        if not name:
+            print("[ERROR] Name cannot be empty.")
+            continue
+        if not re.fullmatch(r"^[A-Za-z\s\.\-]+$", name):
+            print("[ERROR] Invalid name! Numbers and special symbols are not allowed.")
+            continue
+        return name.title()
+
+def get_section(prompt="Enter section: "):
+    """Validates section name (letters, digits, single hyphens/spaces)."""
+    while True:
+        section = input(prompt).strip().upper()
+        if not section:
+            print("[ERROR] Section cannot be empty.")
+            continue
+        if not re.fullmatch(r"^[A-Z0-9]+([ -][A-Z0-9]+)*$", section):
+            print("[ERROR] Invalid section format! Allowed examples: 'BSIT-2A', 'BSCS 1B'.")
+            continue
+        return section
+
+def get_date(prompt="Enter date (YYYY-MM-DD) [Press Enter for today]: "):
+    """Validates calendar date in YYYY-MM-DD format."""
+    while True:
+        date_input = input(prompt).strip()
+        if not date_input:
+            return datetime.now().strftime("%Y-%m-%d")
+
+        if not re.fullmatch(r"^\d{4}-\d{2}-\d{2}$", date_input):
+            print("[ERROR] Invalid format! Please use YYYY-MM-DD.")
+            continue
+
+        try:
+            datetime.strptime(date_input, "%Y-%m-%d")
+            return date_input
+        except ValueError:
+            print("[ERROR] Invalid calendar date! Please check the year, month, and day.")
+
+def get_username(prompt="Enter username: "):
+    """Validates username (letters, digits, underscores; 4-15 chars)."""
+    while True:
+        username = input(prompt).strip()
+        if not re.fullmatch(r"^[A-Za-z0-9_]{4,15}$", username):
+            print("[ERROR] Username must be 4-15 characters (letters, numbers, underscores only).")
+            continue
+        return username
+
+def get_password(prompt="Enter password: "):
+    """Validates that password is at least 6 characters."""
+    while True:
+        password = input(prompt).strip()
+        if len(password) < 6:
+            print("[ERROR] Password must be at least 6 characters long.")
+            continue
+        return password
+
+# ----------------- TABLE DISPLAY -----------------
+
+def display_attendance_table(records, title="ATTENDANCE REPORT"):
+    """Displays records in an aligned columnar table."""
+    print(f"\n{'=' * 35} {title} {'=' * 35}")
+    if not records:
+        print("[INFO] No attendance records found.")
+        print("=" * (72 + len(title)))
+        return
+
+    separator = "+" + "-" * 14 + "+" + "-" * 22 + "+" + "-" * 12 + "+" + "-" * 14 + "+" + "-" * 12 + "+" + "-" * 11 + "+"
+    header    = f"| {'ID':<12} | {'Name':<20} | {'Section':<10} | {'Date':<12} | {'Time':<10} | {'Status':<9} |"
+
+    print(separator)
+    print(header)
+    print(separator)
+
+    for rec in records:
+        row = (
+            f"| {rec['student_id']:<12} "
+            f"| {rec['name'][:20]:<20} "
+            f"| {rec['section']:<10} "
+            f"| {rec['date']:<12} "
+            f"| {rec['time']:<10} "
+            f"| {rec['status']:<9} |"
+        )
+        print(row)
+
+    print(separator)
+    print(f"Total record(s) found: {len(records)}\n")
+
+# ----------------- AUTHENTICATION -----------------
+
+def register_user():
+    print("\n--- Register Account ---")
+    print("[1] Register as Student")
+    print("[2] Register as Teacher")
+    role_choice = input("Select account type (1 or 2): ").strip()
+
+    if role_choice == "1":
+        role = "student"
+    elif role_choice == "2":
+        role = "teacher"
+    else:
+        print("[ERROR] Invalid choice. Registration canceled.")
+        return
+
+    while True:
+        username = get_username("Choose a username: ")
+        if any(u["username"].lower() == username.lower() for u in users):
+            print("[ERROR] That username is already taken. Try another.")
+            continue
+        break
+
+    password = get_password("Choose a password: ")
+    full_name = get_name("Enter your full name: ")
+
+    new_user = {
+        "username": username,
+        "password": password,
+        "role": role,
+        "name": full_name
+    }
+
+    if role == "student":
+        student_id = get_student_id("Enter your Student ID: ")
+
+        # Link to an existing student profile or create a new student record
+        existing = next((s for s in students if s["id"] == student_id), None)
+        if existing:
+            section = existing["section"]
+            print(f"[INFO] Linked to existing student record under section '{section}'.")
+        else:
+            section = get_section("Enter your section: ")
+            students.append({"id": student_id, "name": full_name, "section": section})
+
+        new_user["student_id"] = student_id
+        new_user["section"] = section
+
+    users.append(new_user)
+    print(f"[SUCCESS] {role.capitalize()} account created successfully! You can now log in.")
+
+def login():
+    print("\n--- Log In ---")
+    username = input("Username: ").strip()
+    password = input("Password: ").strip()
+
+    for user in users:
+        if user["username"].lower() == username.lower() and user["password"] == password:
+            print(f"\n[SUCCESS] Welcome, {user['name']}! (Logged in as {user['role'].capitalize()})")
+            return user
+
+    print("[ERROR] Invalid username or password.")
+    return None
+
+# ----------------- TEACHER ACTIONS -----------------
+
+def register_new_student():
+    print("\n--- Register Student ---")
+    student_id = get_student_id("Enter Student ID: ")
+
+    if any(s["id"] == student_id for s in students):
+        print("[ERROR] Student ID already exists.")
+        return
+
+    name = get_name("Enter Full Name: ")
+    section = get_section("Enter Section: ")
+
+    students.append({"id": student_id, "name": name, "section": section})
+    print(f"[SUCCESS] Student '{name}' registered successfully.")
+
+def record_attendance():
+    print("\n--- Record Attendance ---")
+    student_id = get_student_id("Enter Student ID: ")
+
+    matched_student = next((s for s in students if s["id"] == student_id), None)
+    if not matched_student:
+        print("[ERROR] Student ID not found. Register the student first.")
+        return
+
+    print("Status Options:\n [1] Present\n [2] Late\n [3] Absent")
+    status_map = {"1": "Present", "2": "Late", "3": "Absent"}
+
+    while True:
+        status_choice = input("Select status (1-3): ").strip()
+        if status_choice in status_map:
+            status = status_map[status_choice]
+            break
+        print("[ERROR] Invalid choice. Select 1, 2, or 3.")
+
+    now = datetime.now()
+    attendance_records.append({
+        "student_id": matched_student["id"],
+        "name": matched_student["name"],
+        "section": matched_student["section"],
+        "date": now.strftime("%Y-%m-%d"),
+        "time": now.strftime("%I:%M %p"),
+        "status": status
+    })
+
+    print(f"[SUCCESS] Attendance recorded for {matched_student['name']} ({status}).")
+
+def report_by_section():
+    print("\n--- Attendance Report by Section ---")
+    target_section = get_section("Enter section to filter: ")
+    filtered = [rec for rec in attendance_records if rec["section"].upper() == target_section]
+    display_attendance_table(filtered, title=f"SECTION REPORT: {target_section}")
+
+def teacher_dashboard(current_user):
+    while True:
+        print("\n" + "=" * 25 + f" TEACHER PORTAL ({current_user['name']}) " + "=" * 25)
+        print("[1] Register New Student")
+        print("[2] Record Student Attendance")
+        print("[3] View All Attendance Records")
+        print("[4] View Attendance Report per Section")
+        print("[5] Log Out")
+
+        choice = input("Select an option (1-5): ").strip()
+
+        if choice == "1":
+            register_new_student()
+        elif choice == "2":
+            record_attendance()
+        elif choice == "3":
+            display_attendance_table(attendance_records, title="OVERALL ATTENDANCE REPORT")
+        elif choice == "4":
+            report_by_section()
+        elif choice == "5":
+            print("[INFO] Logging out from Teacher Portal...")
+            break
+        else:
+            print("[ERROR] Invalid option. Please enter 1-5.")
+
+# ----------------- STUDENT ACTIONS -----------------
+
+def student_personal_view(current_user):
+    print("\n--- View Personal Attendance ---")
+    print("[1] View All My Records")
+    print("[2] Filter by Date")
+    view_choice = input("Select an option (1 or 2): ").strip()
+
+    student_id = current_user["student_id"]
+
+    if view_choice == "1":
+        records = [rec for rec in attendance_records if rec["student_id"] == student_id]
+        display_attendance_table(records, title=f"ATTENDANCE HISTORY: {current_user['name']}")
+    elif view_choice == "2":
+        target_date = get_date()
+        records = [
+            rec for rec in attendance_records
+            if rec["student_id"] == student_id and rec["date"] == target_date
+        ]
+        display_attendance_table(records, title=f"ATTENDANCE FOR {target_date}")
+    else:
+        print("[ERROR] Invalid option.")
+
+def student_dashboard(current_user):
+    while True:
+        print("\n" + "=" * 25 + f" STUDENT PORTAL ({current_user['name']}) " + "=" * 25)
+        print(f"Logged in Student ID: {current_user['student_id']} | Section: {current_user['section']}")
+        print("[1] View My Attendance Record")
+        print("[2] Log Out")
+
+        choice = input("Select an option (1 or 2): ").strip()
+
+        if choice == "1":
+            student_personal_view(current_user)
+        elif choice == "2":
+            print("[INFO] Logging out from Student Portal...")
+            break
+        else:
+            print("[ERROR] Invalid option. Please enter 1 or 2.")
+
+# ----------------- MAIN PORTAL -----------------
+
+def main():
+    while True:
+        print("\n" + "=" * 30 + " SMARTATTEND LOGIN " + "=" * 30)
+        print("[1] Log In")
+        print("[2] Register New Account")
+        print("[3] Exit")
+
+        choice = input("Select an option (1-3): ").strip()
+
+        if choice == "1":
+            user = login()
+            if user:
+                if user["role"] == "teacher":
+                    teacher_dashboard(user)
+                elif user["role"] == "student":
+                    student_dashboard(user)
+        elif choice == "2":
+            register_user()
+        elif choice == "3":
+            print("Thank you for using SmartAttend. Goodbye!")
+            break
+        else:
+            print("[ERROR] Invalid option! Please choose 1, 2, or 3.")
+
+if __name__ == "__main__":
+    main()
